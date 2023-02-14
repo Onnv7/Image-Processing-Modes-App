@@ -22,13 +22,13 @@ def open_file():
     original_image_label.image = image
 
 
-def log_transformation_process(image, c):
-    machine = LogTransformations(image, c)
+def log_transformation_process(image, result, c):
+    machine = LogTransformations(image, result, c)
     return machine.process()
 
 
 def on_scale_change(c):
-    log_image = log_transformation_process(my_image.image, c)
+    log_image = log_transformation_process(my_image.image, my_image.result_image, c)
     result = Image.fromarray(log_image)
     result = ImageTk.PhotoImage(result)
     result_image_label.config(image=result)
@@ -60,14 +60,14 @@ open_file_button.grid(row=1, column=0)
 
 
 # button save image
-def save_file(image):
-    file_path = filedialog.asksaveasfilename(defaultextension=".jpg")
-    cv2.imwrite(file_path, image)
+# def save_file(image):
+#     file_path = filedialog.asksaveasfilename(defaultextension=".jpg")
+#     cv2.imwrite(file_path, image)
 
 
-save_button = tk.Button(root, text="Save File",
-                        command=save_file(my_image.result_image))
-save_button.pack()
+# save_button = tk.Button(root, text="Save File",
+#                         command=save_file(my_image.result_image))
+# save_button.pack()
 
 # bar
 slider = tk.Scale(root, from_=0, to=100, orient=tk.HORIZONTAL,
