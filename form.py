@@ -55,8 +55,8 @@ open_file_button = tk.Button(frame, text="Open Image", command=open_file)
 open_file_button.pack(side="bottom", pady=10)
 
 
-slider = tk.Scale(root, from_=0, to=100, orient=tk.HORIZONTAL, sliderlength=20,
-                  width=20, length=200)
+slider = tk.Scale(root, from_=0, to=100, orient=tk.HORIZONTAL,
+                  sliderlength=20, width=20, length=200)
 slider.pack()
 slider.config(command=on_scale_change)
 
