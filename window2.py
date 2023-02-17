@@ -10,11 +10,14 @@ from image_negatives import ImageNegative
 from gamma import Gamma
 from my_image import MyImage
 
+# chỗ apply và chế độ gamma (1 kênh), viết code sao cho chỉ đổi mode mới cvt sang 3 kênh, còn apply thì vẫn giữ nguyên số kênh
+
 
 class Application:
     my_image = MyImage()
     root = tk.Tk()
     # frames
+    image_mode = "RGB"
     old_mode = "None"
     image_frame = tk.Frame(root, bg="blue")
     adjust_frame = tk.Frame(root, bg="blue")
@@ -37,6 +40,7 @@ class Application:
     # buttons
     open_file_button = tk.Button(function_frame, text="Open Image")
     save_file_button = tk.Button(function_frame, text="Save Image")
+    apply_button = tk.Button(function_frame, text="Apply")
 
     # scale
     c_slider = tk.Scale(adjust_frame, from_=0, to=100,
@@ -86,20 +90,88 @@ class Application:
         Application.save_file_button.config(
             command=Application.save_file)
 
+        # apply button
+        Application.apply_button.grid(row=0, column=2)
+        Application.apply_button.config(
+            command=Application.apply_image)
+
         # slider
         Application.c_slider.config(command=Application.on_c_scale_change)
         Application.gamma_slider.config(
             command=Application.on_gamma_scale_change)
         Application.root.mainloop()
+    # >>>>>>>>>>> Algorithm <<<<<<<<<<<<
+
+    @staticmethod
+    def get_image_negative():
+        image_negative = ImageNegative(Application.my_image)
+        image_negative.process()
+        Application.set_image_for_label(
+            Application.my_image.result_image.copy(), Application.result_image_label, "RGB")
+
+    @staticmethod
+    def get_gamma_image():
+        # x = msgbox.showinfo(
+        #     "Thông báo", "Sử dụng gamma sẽ đưa ảnh màu của bạn thành ảnh trắng đen", icon="warning", type="yesno")
+        # print(x)
+        c = Application.c_slider.get()
+        gamma = Application.gamma_slider.get()
+        gray_image = Application.my_image.image.copy()
+        Application.set_image_for_label(
+            gray_image, Application.original_image_label, "GRAY")
+
+        gamma_image = Gamma(Application.my_image, c, gamma)
+        gamma_image.process(gray_image)
+        Application.set_image_for_label(
+            Application.my_image.result_image.copy(), Application.result_image_label, "GRAY")
+    # =================================================================
+
+    # >>>>>>>>>> utilities functions <<<<<<<<<
+
+    @staticmethod
+    def set_image_for_label(matrix, label, code):
+        image = matrix.copy()
+        print("1: ", image.shape)
+        if code == "GRAY":
+            # matrix = np.uint8(matrix)
+            print("KHONG DOI THANH RGB", code)
+            image = matrix
+        elif (code == "RGB"):
+            print("DOI THANH RGB", code)
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        elif (code == "GRAY2RGB"):
+            print("GRAY2RGB")
+            image = cv2.cvtColor(image.copy(), cv2.COLOR_GRAY2RGB)
+
+        print("2: ", image.shape)
+        result = Image.fromarray(image)
+        result = ImageTk.PhotoImage(result)
+        label.config(image=result)
+        label.image = result
+
+    @staticmethod
+    def check_image():
+        if Application.my_image.image is None:
+            return False
+        return True
+
+    @staticmethod
+    def convert_from_BGR_to_GRAY(original_image):
+        if (len(original_image) == 2):
+            image = cv2.convertScaleAbs(original_image)
+            return cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+        return original_image
+    # ================================END=================================
+    # >>>>>>>>>> function for button's click event <<<<<<<<<<<<<<<<<
 
     @staticmethod
     def open_file():
         file_path = filedialog.askopenfilename()
         image = cv2.imread(file_path, cv2.IMREAD_ANYCOLOR)
+        Application.my_image.image = image.copy()
+        Application.my_image.result_image = image.copy()
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        image = cv2.resize(image, (500, 500))
-        Application.my_image.image = image
-        Application.my_image.result_image = image
+        # image = cv2.resize(image, (500, 500))
         image = Image.fromarray(image)
         image = ImageTk.PhotoImage(image)
         Application.original_image_label.config(image=image)
@@ -108,28 +180,53 @@ class Application:
         # Application.on_c_scale_change(Application.slider.get())
 
     @staticmethod
+    def save_file():
+        file_path = filedialog.asksaveasfilename(defaultextension=".jpg")
+        cv2.imwrite(file_path, Application.my_image.result_image)
+
+    @staticmethod
+    def apply_image():
+        print("Applied", Application.my_image.result_image.shape)
+        Application.my_image.image = Application.my_image.result_image.copy()
+        if len(Application.my_image.result_image.shape) == 3:
+            # TODO: check color conversion
+            Application.set_image_for_label(
+                Application.my_image.image.copy(), Application.original_image_label, "RGB")
+        elif (len(Application.my_image.result_image.shape) == 2):
+            Application.set_image_for_label(
+                Application.my_image.image.copy(), Application.original_image_label, "GRAY")
+        # image = cv2.cvtColor(
+        #     Application.my_image.image.copy(), cv2.COLOR_BGR2RGB)
+        # image = Image.fromarray(image)
+        # image = ImageTk.PhotoImage(image)
+        # Application.original_image_label.config(image=image)
+        # Application.original_image_label.image = image
+    # =============== end ==============
+
+    # >>>>>>>>>>>>> slider event <<<<<<<<<<
+
+    @staticmethod
     def on_c_scale_change(c):
         if (Application.mode_combobox.get() == "Log Transformations"):
+            print("== == ==")
             log = LogTransformations(Application.my_image, c)
             log.process()
             Application.set_image_for_label(
-                Application.my_image.result_image, Application.result_image_label, cv2.COLOR_BGR2RGB)
+                Application.my_image.result_image.copy(), Application.result_image_label, "RGB")
         else:
             Application.get_gamma_image()
 
     @staticmethod
     def on_gamma_scale_change(c):
         Application.get_gamma_image()
+    # ========================================
 
-    @staticmethod
-    def save_file():
-        file_path = filedialog.asksaveasfilename(defaultextension=".jpg")
-        cv2.imwrite(file_path, Application.my_image.result_image)
-
+    # >>>>>>>>>>>>> combobox event <<<<<<<<<<
     @staticmethod
     def selected_combobox(e):
         Application.c_slider.grid_remove()
         Application.gamma_slider.grid_remove()
+        print(Application.my_image.image)
         if (Application.check_image() == False):
             msgbox.showinfo("Thông báo", "Hãy mở 1 file ảnh")
             print("Them ảnh vào")
@@ -141,95 +238,45 @@ class Application:
             return
 
         print("Bạn chọn...", Application.mode_combobox.get())
-        Application.my_image.result_image = Application.my_image.image.copy()
-
+        # Application.my_image.result_image = Application.my_image.image.copy()
+        if (len(Application.my_image.image.shape) == 2):
+            original_image = cv2.convertScaleAbs(
+                Application.my_image.image.copy())
+            result_image = cv2.convertScaleAbs(
+                Application.my_image.result_image.copy())
+            Application.my_image.image = cv2.cvtColor(
+                original_image, cv2.COLOR_GRAY2BGR)
+            Application.my_image.result_image = cv2.cvtColor(
+                result_image, cv2.COLOR_GRAY2BGR)
+        # mỗi lần đổi chế độ là phải đem ảnh lên màn trái
+        Application.set_image_for_label(
+            Application.my_image.image.copy(), Application.original_image_label, "RGB")
         if (Application.mode_combobox.get() == "Negative Image"):
-            Application.set_image_for_label(
-                Application.my_image.image, Application.original_image_label)
             print("Thực hiện Image Negative")
             Application.get_image_negative()
         elif (Application.mode_combobox.get() == "Log Transformations"):
-            Application.set_image_for_label(
-                Application.my_image.image, Application.original_image_label)
             print("Thực hiện Log Transformations")
             Application.on_c_scale_change(Application.c_slider.get())
             Application.c_slider.grid(row=1, column=1)
+        # thao tác trên gray image
         elif (Application.mode_combobox.get() == "Gamma"):
             print("Thực hiện Gamma")
-            Application.c_slider.grid(row=1, column=1)
-            Application.gamma_slider.grid(row=1, column=2)
-            Application.get_gamma_image()
-
-        print("BBBBBBBBB", Application.my_image.image.shape)
+            answer = "yes"
+            B, G, R = cv2.split(Application.my_image.image.copy())
+            print(B)
+            if np.array_equal(B, G):
+                pass
+            else:
+                answer = msgbox.showinfo(
+                    "Thông báo", "Nếu sử dụng chế độ này ảnh của bạn sẽ là ảnh trắng đen (ảnh xám) và không thể phục hồi lại ảnh màu. Bạn có muốn tiếp tục sử dụng chế độ này?", type="yesno")
+            if answer == "yes":
+                Application.c_slider.grid(row=1, column=1)
+                Application.gamma_slider.grid(row=1, column=2)
+                Application.my_image.image = cv2.cvtColor(
+                    Application.my_image.image.copy(), cv2.COLOR_RGB2GRAY)
+                Application.get_gamma_image()
         Application.old_mode = Application.mode_combobox.get()
-
-    @staticmethod
-    def check_image():
-        if not np.any(Application.my_image.image):
-            return False
-        return True
-
-    @staticmethod
-    def get_image_negative():
-        image_negative = ImageNegative(Application.my_image)
-        image_negative.process()
-        Application.set_image_for_label(
-            Application.my_image.result_image, Application.result_image_label, cv2.COLOR_BGR2RGB)
-
-    # @staticmethod
-    # def set_result_image():
-    #     new_image = cv2.cvtColor(
-    #         Application.my_image.result_image, cv2.COLOR_BGR2RGB)
-    #     result = Image.fromarray(new_image)
-    #     result = ImageTk.PhotoImage(result)
-    #     Application.result_image_label.config(image=result)
-    #     Application.result_image_label.image = result
-
-    # @staticmethod
-    # def get_gamma_image():
-    #     image = cv2.cvtColor(Application.my_image.image, cv2.COLOR_RGB2GRAY)
-    #     Application.my_image.result_image = image
-    #     image = Image.fromarray(image)
-    #     image = ImageTk.PhotoImage(image)
-    #     Application.original_image_label.config(image=image)
-    #     Application.original_image_label.image = image
-
-    @staticmethod
-    def set_RGB_image(matrix, label):
-        image = cv2.cvtColor(matrix, cv2.COLOR_BGR2RGB)
-        result = Image.fromarray(image)
-        result = ImageTk.PhotoImage(result)
-        label.config(image=result)
-        label.image = result
-
-    @staticmethod
-    def set_image_for_label(matrix, label, code=None):
-        image = None
-        print(matrix)
-        if code is None:
-            # matrix = np.uint8(matrix)
-            image = matrix
-        else:
-            image = cv2.cvtColor(matrix, code)
-        result = Image.fromarray(image)
-        result = ImageTk.PhotoImage(result)
-        label.config(image=result)
-        label.image = result
-
-    @staticmethod
-    def get_gamma_image():
-        c = Application.c_slider.get()
-        gamma = Application.gamma_slider.get()
-        gray_image = cv2.cvtColor(
-            Application.my_image.image, cv2.COLOR_BGR2GRAY)
-        Application.set_image_for_label(
-            gray_image, Application.original_image_label)
-
-        gamma_image = Gamma(Application.my_image, c, gamma)
-        gamma_image.process(gray_image)
-        Application.set_image_for_label(
-            Application.my_image.result_image, Application.result_image_label)
-        print("AAAAAAAAAAAAAA", Application.my_image.image.shape)
+    # =================================================================
 
 
 app = Application()

@@ -1,18 +1,9 @@
-import tkinter as tk
-from tkinter import filedialog
-import cv2
 import numpy as np
 
+c = 300
+c = np.uint8(c)
 
-def save_file():
-    file_path = filedialog.asksaveasfilename(defaultextension=".jpg")
-    cv2.imwrite(file_path, image)
+arr = [256, 123, 300]
 
-
-root = tk.Tk()
-root.title("Save Image")
-
-save_button = tk.Button(root, text="Save File", command=save_file)
-save_button.pack()
-
-root.mainloop()
+x = np.array(arr, dtype='uint8')
+print(c, x)
