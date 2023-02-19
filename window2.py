@@ -41,6 +41,7 @@ class Application:
     open_file_button = tk.Button(function_frame, text="Open Image")
     save_file_button = tk.Button(function_frame, text="Save Image")
     apply_button = tk.Button(function_frame, text="Apply")
+    gray_button = tk.Button(function_frame, text="Convert to Gray Image")
 
     # scale
     c_slider = tk.Scale(adjust_frame, from_=0, to=100,
@@ -68,7 +69,8 @@ class Application:
         Application.mode_frame.grid(row=2, column=1, columnspan=2)
 
         # function frame
-        Application.function_frame.grid(row=3, column=1, columnspan=2)
+        Application.function_frame.grid(
+            row=3, column=1, columnspan=2, rowspan=2)
         for widget in Application.function_frame.winfo_children():
             widget.grid_configure(padx=10, pady=50)
 
@@ -95,6 +97,11 @@ class Application:
         Application.apply_button.config(
             command=Application.apply_image)
 
+        # convert button
+        Application.gray_button.grid(row=1, column=1)
+        Application.gray_button.config(
+            command=Application.convert_from_BGR_to_GRAY)
+
         # slider
         Application.c_slider.config(command=Application.on_c_scale_change)
         Application.gamma_slider.config(
@@ -116,20 +123,20 @@ class Application:
         # print(x)
         c = Application.c_slider.get()
         gamma = Application.gamma_slider.get()
-        gray_image = Application.my_image.image.copy()
+        original_image = Application.my_image.image.copy()
         Application.set_image_for_label(
-            gray_image, Application.original_image_label, "GRAY")
+            original_image, Application.original_image_label, "RGB")
 
         gamma_image = Gamma(Application.my_image, c, gamma)
-        gamma_image.process(gray_image)
+        gamma_image.process(original_image)
         Application.set_image_for_label(
-            Application.my_image.result_image.copy(), Application.result_image_label, "GRAY")
+            Application.my_image.result_image.copy(), Application.result_image_label, "RGB")
     # =================================================================
 
     # >>>>>>>>>> utilities functions <<<<<<<<<
 
     @staticmethod
-    def set_image_for_label(matrix, label, code):
+    def set_image_for_label(matrix, label, code="RGB"):
         image = matrix.copy()
         print("1: ", image.shape)
         if code == "GRAY":
@@ -156,15 +163,18 @@ class Application:
         return True
 
     @staticmethod
-    def convert_from_BGR_to_GRAY(original_image):
-        if (len(original_image) == 2):
-            image = cv2.convertScaleAbs(original_image)
-            return cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
-        return original_image
+    def convert_from_BGR_to_GRAY():
+        if (len(Application.my_image.image.shape) == 3):
+            Application.my_image.image = cv2.cvtColor(
+                Application.my_image.image, cv2.COLOR_BGR2GRAY)
+            Application.set_image_for_label(
+                Application.my_image.image.copy(), Application.original_image_label, "GRAY")
+        else:
+            msgbox.showinfo("Thông báo", "Đây là ảnh Gray", icon="warning")
     # ================================END=================================
     # >>>>>>>>>> function for button's click event <<<<<<<<<<<<<<<<<
 
-    @staticmethod
+    @ staticmethod
     def open_file():
         file_path = filedialog.askopenfilename()
         image = cv2.imread(file_path, cv2.IMREAD_ANYCOLOR)
@@ -179,12 +189,12 @@ class Application:
         Application.selected_combobox(None)
         # Application.on_c_scale_change(Application.slider.get())
 
-    @staticmethod
+    @ staticmethod
     def save_file():
         file_path = filedialog.asksaveasfilename(defaultextension=".jpg")
         cv2.imwrite(file_path, Application.my_image.result_image)
 
-    @staticmethod
+    @ staticmethod
     def apply_image():
         print("Applied", Application.my_image.result_image.shape)
         Application.my_image.image = Application.my_image.result_image.copy()
@@ -205,7 +215,7 @@ class Application:
 
     # >>>>>>>>>>>>> slider event <<<<<<<<<<
 
-    @staticmethod
+    @ staticmethod
     def on_c_scale_change(c):
         if (Application.mode_combobox.get() == "Log Transformations"):
             print("== == ==")
@@ -216,13 +226,13 @@ class Application:
         else:
             Application.get_gamma_image()
 
-    @staticmethod
+    @ staticmethod
     def on_gamma_scale_change(c):
         Application.get_gamma_image()
     # ========================================
 
     # >>>>>>>>>>>>> combobox event <<<<<<<<<<
-    @staticmethod
+    @ staticmethod
     def selected_combobox(e):
         Application.c_slider.grid_remove()
         Application.gamma_slider.grid_remove()
@@ -239,15 +249,15 @@ class Application:
 
         print("Bạn chọn...", Application.mode_combobox.get())
         # Application.my_image.result_image = Application.my_image.image.copy()
-        if (len(Application.my_image.image.shape) == 2):
-            original_image = cv2.convertScaleAbs(
-                Application.my_image.image.copy())
-            result_image = cv2.convertScaleAbs(
-                Application.my_image.result_image.copy())
-            Application.my_image.image = cv2.cvtColor(
-                original_image, cv2.COLOR_GRAY2BGR)
-            Application.my_image.result_image = cv2.cvtColor(
-                result_image, cv2.COLOR_GRAY2BGR)
+        # if (len(Application.my_image.image.shape) == 2):
+        #     original_image = cv2.convertScaleAbs(
+        #         Application.my_image.image.copy())
+        #     result_image = cv2.convertScaleAbs(
+        #         Application.my_image.result_image.copy())
+        #     Application.my_image.image = cv2.cvtColor(
+        #         original_image, cv2.COLOR_GRAY2BGR)
+        #     Application.my_image.result_image = cv2.cvtColor(
+        #         result_image, cv2.COLOR_GRAY2BGR)
         # mỗi lần đổi chế độ là phải đem ảnh lên màn trái
         Application.set_image_for_label(
             Application.my_image.image.copy(), Application.original_image_label, "RGB")
@@ -261,20 +271,20 @@ class Application:
         # thao tác trên gray image
         elif (Application.mode_combobox.get() == "Gamma"):
             print("Thực hiện Gamma")
-            answer = "yes"
-            B, G, R = cv2.split(Application.my_image.image.copy())
-            print(B)
-            if np.array_equal(B, G):
-                pass
-            else:
-                answer = msgbox.showinfo(
-                    "Thông báo", "Nếu sử dụng chế độ này ảnh của bạn sẽ là ảnh trắng đen (ảnh xám) và không thể phục hồi lại ảnh màu. Bạn có muốn tiếp tục sử dụng chế độ này?", type="yesno")
-            if answer == "yes":
-                Application.c_slider.grid(row=1, column=1)
-                Application.gamma_slider.grid(row=1, column=2)
-                Application.my_image.image = cv2.cvtColor(
-                    Application.my_image.image.copy(), cv2.COLOR_RGB2GRAY)
-                Application.get_gamma_image()
+            # answer = "yes"
+            # B, G, R = cv2.split(Application.my_image.image.copy())
+            # print(B)
+            # if np.array_equal(B, G):
+            #     pass
+            # else:
+            #     answer = msgbox.showinfo(
+            #         "Thông báo", "Nếu sử dụng chế độ này ảnh của bạn sẽ là ảnh trắng đen (ảnh xám) và không thể phục hồi lại ảnh màu. Bạn có muốn tiếp tục sử dụng chế độ này?", type="yesno")
+            # if answer == "yes":
+            Application.c_slider.grid(row=1, column=1)
+            Application.gamma_slider.grid(row=1, column=2)
+            # Application.my_image.image = cv2.cvtColor(
+            #     Application.my_image.image.copy(), cv2.COLOR_RGB2GRAY)
+            Application.get_gamma_image()
         Application.old_mode = Application.mode_combobox.get()
     # =================================================================
 

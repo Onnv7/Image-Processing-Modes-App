@@ -7,7 +7,8 @@ class Gamma:
         self.c = c
         self.gamma = gamma
 
-    def process(self, gray_image):
+    def process(self, original_image):
         result = float(
-            self.c) * pow(gray_image, float(self.gamma))
-        self.my_image.result_image = np.round(result).astype(int)
+            self.c) * pow(original_image, float(self.gamma))
+        self.my_image.result_image = np.array(
+            np.round(result).astype(int), dtype="uint8")
