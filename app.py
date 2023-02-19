@@ -23,7 +23,7 @@ class App(tk.Tk):
         super().__init__()
         self.controller = Controller(App.my_image)
         self.resizable(False, False)
-        self.title("Form with Image Container")
+        self.title("My Application")
         self.__create_widgets()
 
     def __create_widgets(self):

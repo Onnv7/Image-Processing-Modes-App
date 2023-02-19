@@ -21,6 +21,45 @@ class Controller:
         self.adjust_frame = adjust_frame
         self.function_frame = function_frame
 
+    # <<<<<<<<<<<<<<<<<<<< Utilities >>>>>>>>>>>>>>>>>>>
+
+    def check_image(self):
+        if self.my_image.image is None:
+            return False
+        return True
+
+    def get_image_negative(self):
+        image_negative = ImageNegative(self.my_image)
+        image_negative.process()
+        self.set_image_for_label(
+            self.my_image.result_image.copy(), self.view_frame.result_image_label, "RGB")
+
+    def set_image_for_label(self, matrix, label, code="RGB"):
+        image = matrix.copy()
+        if code == "GRAY":
+            image = matrix
+        elif (code == "RGB"):
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        elif (code == "GRAY2RGB"):
+            image = cv2.cvtColor(image.copy(), cv2.COLOR_GRAY2RGB)
+
+        image = cv2.resize(image, (500, 500))
+        result = Image.fromarray(image)
+        result = ImageTk.PhotoImage(result)
+        label.config(image=result)
+        label.image = result
+    # ======================================================================
+
+    # <<<<<<<<<<<<<<<<<< Button's event >>>>>>>>>>>>>>>>>>>>>>
+    def convert_from_BGR_to_GRAY(self):
+        if (len(self.my_image.image.shape) == 3):
+            self.my_image.image = cv2.cvtColor(
+                self.my_image.image, cv2.COLOR_BGR2GRAY)
+            self.set_image_for_label(
+                self.my_image.image.copy(), self.view_frame.original_image_label, "GRAY")
+        else:
+            msgbox.showinfo("Thông báo", "Đây là ảnh Gray", icon="warning")
+
     def open_file(self):
         file_path = filedialog.askopenfilename()
         image = cv2.imread(file_path, cv2.IMREAD_ANYCOLOR)
@@ -47,30 +86,9 @@ class Controller:
         elif (len(self.my_image.result_image.shape) == 2):
             self.set_image_for_label(
                 self.my_image.image.copy(), self.view_frame.original_image_label, "GRAY")
+    # ======================================================================
 
-    def set_image_for_label(self, matrix, label, code="RGB"):
-        image = matrix.copy()
-        if code == "GRAY":
-            image = matrix
-        elif (code == "RGB"):
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        elif (code == "GRAY2RGB"):
-            image = cv2.cvtColor(image.copy(), cv2.COLOR_GRAY2RGB)
-
-        result = Image.fromarray(image)
-        result = ImageTk.PhotoImage(result)
-        label.config(image=result)
-        label.image = result
-
-    def convert_from_BGR_to_GRAY(self):
-        if (len(self.my_image.image.shape) == 3):
-            self.my_image.image = cv2.cvtColor(
-                self.my_image.image, cv2.COLOR_BGR2GRAY)
-            self.set_image_for_label(
-                self.my_image.image.copy(), self.view_frame.original_image_label, "GRAY")
-        else:
-            msgbox.showinfo("Thông báo", "Đây là ảnh Gray", icon="warning")
-
+    # <<<<<<<<<<<<<<<<<<<< scale's event >>>>>>>>>>>>>>>>>>
     def on_c_scale_change(self, c):
         if (self.mode_frame.mode_combobox.get() == "Log Transformations"):
             log = LogTransformations(self.my_image, c)
@@ -79,6 +97,9 @@ class Controller:
                 self.my_image.result_image.copy(), self.view_frame.result_image_label, "RGB")
         else:
             self.get_gamma_image()
+
+    def on_gamma_scale_change(self, c):
+        self.get_gamma_image()
 
     def get_gamma_image(self):
         c = self.adjust_frame.c_slider.get()
@@ -92,9 +113,9 @@ class Controller:
         self.set_image_for_label(
             self.my_image.result_image.copy(), self.view_frame.result_image_label, "RGB")
 
-    def on_gamma_scale_change(self, c):
-        self.get_gamma_image()
+    # =============================================================
 
+    # <<<<<<<<<<<<<<<<<<< combobox's event >>>>>>>>>>>>>>>>>>>
     def selected_combobox(self, e):
         self.adjust_frame.c_slider.grid_remove()
         self.adjust_frame.gamma_slider.grid_remove()
@@ -108,17 +129,6 @@ class Controller:
             return
 
         print("Bạn chọn...", self.mode_frame.mode_combobox.get())
-        # Application.my_image.result_image = Application.my_image.image.copy()
-        # if (len(Application.my_image.image.shape) == 2):
-        #     original_image = cv2.convertScaleAbs(
-        #         Application.my_image.image.copy())
-        #     result_image = cv2.convertScaleAbs(
-        #         Application.my_image.result_image.copy())
-        #     Application.my_image.image = cv2.cvtColor(
-        #         original_image, cv2.COLOR_GRAY2BGR)
-        #     Application.my_image.result_image = cv2.cvtColor(
-        #         result_image, cv2.COLOR_GRAY2BGR)
-        # mỗi lần đổi chế độ là phải đem ảnh lên màn trái
         self.set_image_for_label(self.my_image.image.copy(
         ), self.view_frame.original_image_label, "RGB")
         if (self.mode_frame.mode_combobox.get() == "Negative Image"):
@@ -139,14 +149,3 @@ class Controller:
             self.get_gamma_image()
         Controller.old_mode = self.mode_frame.mode_combobox.get()
     # =================================================================
-
-    def check_image(self):
-        if self.my_image.image is None:
-            return False
-        return True
-
-    def get_image_negative(self):
-        image_negative = ImageNegative(self.my_image)
-        image_negative.process()
-        self.set_image_for_label(
-            self.my_image.result_image.copy(), self.view_frame.result_image_label, "RGB")
