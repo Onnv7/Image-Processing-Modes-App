@@ -9,7 +9,7 @@ class ModeFrame(tk.Frame):
         self.controller = controller
         self.mode_combobox = ttk.Combobox(self, state="readonly")
         self.mode_combobox['values'] = ("None",
-                                        "Negative Image", "Log Transformations", "Gamma")
+                                        "Negative Image", "Log Transformations", "Gamma", "Median Filter", "Max Filter", "Min Filter", "MidPoint Filter")
         self.mode_combobox.current(0)
         self.mode_combobox.grid(column=0, row=0)
         self.mode_combobox.bind(

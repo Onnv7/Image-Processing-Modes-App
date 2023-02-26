@@ -1,12 +1,15 @@
+import math
 import tkinter.messagebox as msgbox
 from tkinter import filedialog
 from PIL import Image, ImageTk
 
 import cv2
+import numpy as np
 from gamma import Gamma
 from image_negatives import ImageNegative
 
 from log_transformations import LogTransformations
+from nonlinear_filter import NonlinearFilter
 
 
 class Controller:
@@ -22,6 +25,14 @@ class Controller:
         self.function_frame = function_frame
 
     # <<<<<<<<<<<<<<<<<<<< Utilities >>>>>>>>>>>>>>>>>>>
+    def set_c_value_for_log_transformations(self, img):
+        max_value = self.get_max_value(img)
+        c_max = int(255 / math.log(max_value + 1))
+        self.adjust_frame.c_slider.config(to=c_max)
+
+    def get_max_value(self, image):
+        arr = image.flatten()
+        return np.amax(arr)
 
     def check_image(self):
         if self.my_image.image is None:
@@ -57,6 +68,8 @@ class Controller:
                 self.my_image.image, cv2.COLOR_BGR2GRAY)
             self.set_image_for_label(
                 self.my_image.image.copy(), self.view_frame.original_image_label, "GRAY")
+            msgbox.showinfo(
+                "Thông báo", "Đã chuyển đổi thành ảnh gray", icon="info")
         else:
             msgbox.showinfo("Thông báo", "Đây là ảnh Gray", icon="warning")
 
@@ -101,6 +114,22 @@ class Controller:
     def on_gamma_scale_change(self, c):
         self.get_gamma_image()
 
+    def on_kernel_size_change(self, size):
+        kernel_size = int(size) * 2 + 1
+        self.adjust_frame.kernel_size_label.config(
+            text="Kernel size: {}".format(kernel_size))
+        filter = NonlinearFilter(self.my_image, kernel_size)
+        if self.mode_frame.mode_combobox.get() == "Median Filter":
+            filter.process(NonlinearFilter.MEDIAN)
+        elif self.mode_frame.mode_combobox.get() == "Max Filter":
+            filter.process(NonlinearFilter.MAX)
+        elif self.mode_frame.mode_combobox.get() == "Min Filter":
+            filter.process(NonlinearFilter.MIN)
+        elif self.mode_frame.mode_combobox.get() == "MidPoint Filter":
+            filter.process(NonlinearFilter.MID_POINT)
+        self.set_image_for_label(self.my_image.result_image.copy(
+        ), self.view_frame.result_image_label, "RGB")
+
     def get_gamma_image(self):
         c = self.adjust_frame.c_slider.get()
         gamma = self.adjust_frame.gamma_slider.get()
@@ -117,8 +146,10 @@ class Controller:
 
     # <<<<<<<<<<<<<<<<<<< combobox's event >>>>>>>>>>>>>>>>>>>
     def selected_combobox(self, e):
+        self.adjust_frame.kernel_size_label.grid_remove()
         self.adjust_frame.c_slider.grid_remove()
         self.adjust_frame.gamma_slider.grid_remove()
+        self.adjust_frame.kernel_size_slider.grid_remove()
         if (self.check_image() == False):
             msgbox.showinfo("Thông báo", "Hãy mở 1 file ảnh")
             self.mode_frame.mode_combobox.set(Controller.old_mode)
@@ -128,24 +159,39 @@ class Controller:
             self.my_image.result_image = self.my_image.image.copy()
             return
 
-        print("Bạn chọn...", self.mode_frame.mode_combobox.get())
+        your_choice = self.mode_frame.mode_combobox.get()
+        print("Bạn chọn...", your_choice)
         self.set_image_for_label(self.my_image.image.copy(
         ), self.view_frame.original_image_label, "RGB")
-        if (self.mode_frame.mode_combobox.get() == "Negative Image"):
+        if (your_choice == "Negative Image"):
             print("Thực hiện Image Negative")
             self.get_image_negative()
-        elif (self.mode_frame.mode_combobox.get() == "Log Transformations"):
+        elif (your_choice == "Log Transformations"):
+            self.set_c_value_for_log_transformations(
+                self.my_image.image.copy())
             print("Thực hiện Log Transformations")
             self.on_c_scale_change(
                 self.adjust_frame.c_slider.get())
             self.adjust_frame.c_slider.grid(row=1, column=1)
         # thao tác trên gray image
-        elif (self.mode_frame.mode_combobox.get() == "Gamma"):
+        elif (your_choice == "Gamma"):
             print("Thực hiện Gamma")
             self.adjust_frame.c_slider.grid(row=1, column=1)
             self.adjust_frame.gamma_slider.grid(row=1, column=2)
             # Application.my_image.image = cv2.cvtColor(
             #     Application.my_image.image.copy(), cv2.COLOR_RGB2GRAY)
             self.get_gamma_image()
+        elif your_choice == "Median Filter" or your_choice == "Max Filter" or your_choice == "Min Filter" or your_choice == "MidPoint Filter":
+            if (len(self.my_image.image.shape) == 3):
+                msgbox.showinfo(
+                    "Warning", "Chế độ này yêu cầu ảnh phải ở dạng gray. Vui lòng chuyển đổi sang ảnh gray trước khi sử dụng chế độ này", icon="warning")
+                self.mode_frame.mode_combobox.set("None")
+                return
+            print("Thực hiện filter")
+            self.adjust_frame.kernel_size_slider.grid(row=1, column=1)
+            self.adjust_frame.kernel_size_label.grid(row=0, column=1)
+            self.on_kernel_size_change(
+                self.adjust_frame.kernel_size_slider.get())
+            pass
         Controller.old_mode = self.mode_frame.mode_combobox.get()
     # =================================================================

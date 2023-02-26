@@ -16,3 +16,10 @@ class AdjustFrame(tk.Frame):
                                      orient=tk.HORIZONTAL, sliderlength=20, width=20, length=200, resolution=0.1, troughcolor='red', label="gamma")
         self.gamma_slider.config(
             command=self.controller.on_gamma_scale_change)
+
+        self.kernel_size_slider = tk.Scale(self, from_=1, to=49, orient=tk.HORIZONTAL, sliderlength=20,
+                                           width=20, length=200, showvalue=0,                                  troughcolor='green', label="Kernel size", resolution=1)
+        self.kernel_size_label = tk.Label(self, text="")
+
+        self.kernel_size_slider.config(
+            command=self.controller.on_kernel_size_change)
