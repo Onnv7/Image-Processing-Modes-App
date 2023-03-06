@@ -1,11 +1,21 @@
-import cv2
-import tensorflow as tf
-from tensorflow import keras
-import matplotlib.pyplot as plt
 import numpy as np
+import cv2
+from matplotlib import pyplot as plt
 
-import tensorflow as tf
-kernel = np.ones((3, 3), np.uint8)
-img = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
-min_img = cv2.erode(img, kernel)
-print(min_img)
+# đọc ảnh đầu vào
+img = cv2.imread('./image/pic12.jpg', 0)
+
+# tính FFT và dịch chuyển tâm ảnh về giữa
+F = np.fft.fftshift(np.fft.fft2(img))
+
+# áp dụng bộ lọc trên phổ tần số
+
+# dịch chuyển tâm về vị trí ban đầu
+F = np.fft.ifftshift(F)
+
+# tính ngược FFT để có ảnh mới
+img_new = np.abs(np.fft.ifft2(F))
+
+# hiển thị ảnh
+plt.imshow(img_new, cmap='gray')
+plt.show()

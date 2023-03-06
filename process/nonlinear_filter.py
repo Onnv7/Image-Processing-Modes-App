@@ -19,12 +19,12 @@ class NonlinearFilter():
         img = self.my_image.image
         if mode == NonlinearFilter.MEDIAN:
             # Viết tường minh
-            self.my_image.result_image = NonlinearFilter.median_filter2(
-                img, self.kernel_size)
+            # self.my_image.result_image = NonlinearFilter.median_filter2(
+            #     img, self.kernel_size)
 
             # Dùng thư viện
-            # self.my_image.result_image = medfilt2d(
-            #     img, kernel_size=self.kernel_size)
+            self.my_image.result_image = medfilt2d(
+                img, kernel_size=self.kernel_size)
         elif mode == NonlinearFilter.MIN:
 
             # Viết tường minh

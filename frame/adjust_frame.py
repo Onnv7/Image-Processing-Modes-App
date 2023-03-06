@@ -1,7 +1,7 @@
 from tkinter import filedialog, ttk
 import tkinter as tk
 
-from log_transformations import LogTransformations
+from process.log_transformations import LogTransformations
 
 
 class AdjustFrame(tk.Frame):
@@ -23,3 +23,13 @@ class AdjustFrame(tk.Frame):
 
         self.kernel_size_slider.config(
             command=self.controller.on_kernel_size_change)
+
+        self.D0_slider = tk.Scale(self, from_=1, to=400,
+                                  orient=tk.HORIZONTAL, sliderlength=20, width=20, length=300, resolution=1, troughcolor='red', label="D0")
+        self.D0_slider.config(
+            command=self.controller.on_D0_change)
+
+        self.n_slider = tk.Scale(self, from_=1, to=50,
+                                 orient=tk.HORIZONTAL, sliderlength=20, width=20, length=150, resolution=0.1, troughcolor='red', label="D0")
+        self.n_slider.config(
+            command=self.controller.on_D0_change)

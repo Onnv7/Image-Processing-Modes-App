@@ -8,6 +8,7 @@ import cv2
 class ViewFrame(tk.Frame):
     def __init__(self, container, controller):
         super().__init__(container)
+        self.controller = controller
 
         self.original_image_label = tk.Label(
             self, image=None, bg="blue", text="Original image")

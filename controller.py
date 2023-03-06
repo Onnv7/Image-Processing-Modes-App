@@ -5,11 +5,15 @@ from PIL import Image, ImageTk
 
 import cv2
 import numpy as np
-from gamma import Gamma
-from image_negatives import ImageNegative
+from process.FrequencyDomainFiltering.butterworth_filter import ButterworthFilter
+from process.FrequencyDomainFiltering.gaussian_filter import GaussianFilter
+from process.FrequencyDomainFiltering.ideal_filter import IdealFilter
 
-from log_transformations import LogTransformations
-from nonlinear_filter import NonlinearFilter
+from process.gamma import Gamma
+from process.image_negatives import ImageNegative
+
+from process.log_transformations import LogTransformations
+from process.nonlinear_filter import NonlinearFilter
 
 
 class Controller:
@@ -18,11 +22,12 @@ class Controller:
     def __init__(self, my_image):
         self.my_image = my_image
 
-    def set_frames(self, view_frame, mode_frame, adjust_frame, function_frame):
+    def set_frames(self, view_frame, mode_frame, adjust_frame, function_frame, radio_frame):
         self.view_frame = view_frame
         self.mode_frame = mode_frame
         self.adjust_frame = adjust_frame
         self.function_frame = function_frame
+        self.radio_frame = radio_frame
 
     # <<<<<<<<<<<<<<<<<<<< Utilities >>>>>>>>>>>>>>>>>>>
     def set_c_value_for_log_transformations(self, img):
@@ -43,7 +48,7 @@ class Controller:
         image_negative = ImageNegative(self.my_image)
         image_negative.process()
         self.set_image_for_label(
-            self.my_image.result_image.copy(), self.view_frame.result_image_label, "RGB")
+            self.my_image.result_image.copy(), self.view_frame.result_image_label, "GRAY")
 
     def set_image_for_label(self, matrix, label, code="RGB"):
         image = matrix.copy()
@@ -54,7 +59,7 @@ class Controller:
         elif (code == "GRAY2RGB"):
             image = cv2.cvtColor(image.copy(), cv2.COLOR_GRAY2RGB)
 
-        image = cv2.resize(image, (500, 500))
+        image = cv2.resize(image, (350, 350))
         result = Image.fromarray(image)
         result = ImageTk.PhotoImage(result)
         label.config(image=result)
@@ -64,12 +69,14 @@ class Controller:
     # <<<<<<<<<<<<<<<<<< Button's event >>>>>>>>>>>>>>>>>>>>>>
     def convert_from_BGR_to_GRAY(self):
         if (len(self.my_image.image.shape) == 3):
-            self.my_image.image = cv2.cvtColor(
+            self.my_image.result_image = self.my_image.image = cv2.cvtColor(
                 self.my_image.image, cv2.COLOR_BGR2GRAY)
             self.set_image_for_label(
                 self.my_image.image.copy(), self.view_frame.original_image_label, "GRAY")
             msgbox.showinfo(
                 "Thông báo", "Đã chuyển đổi thành ảnh gray", icon="info")
+            self.set_image_for_label(self.my_image.result_image.copy(
+            ), self.view_frame.result_image_label, "GRAY")
         else:
             msgbox.showinfo("Thông báo", "Đây là ảnh Gray", icon="warning")
 
@@ -79,7 +86,7 @@ class Controller:
         self.my_image.image = image.copy()
         self.my_image.result_image = image.copy()
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        image = cv2.resize(image, (500, 500))
+        image = cv2.resize(image, (350, 350))
         image = Image.fromarray(image)
         image = ImageTk.PhotoImage(image)
         self.view_frame.original_image_label.config(image=image)
@@ -91,7 +98,6 @@ class Controller:
         cv2.imwrite(file_path, self.my_image.result_image)
 
     def apply_image(self):
-        print("Applied")
         self.my_image.image = self.my_image.result_image.copy()
         if len(self.my_image.result_image.shape) == 3:
             self.set_image_for_label(
@@ -99,6 +105,12 @@ class Controller:
         elif (len(self.my_image.result_image.shape) == 2):
             self.set_image_for_label(
                 self.my_image.image.copy(), self.view_frame.original_image_label, "GRAY")
+        print("Applied")
+        self.adjust_frame.c_slider.set(0)
+        self.adjust_frame.gamma_slider.set(0)
+        self.adjust_frame.kernel_size_slider.set(1)
+        self.adjust_frame.D0_slider.set(1)
+        self.adjust_frame.n_slider.set(1)
     # ======================================================================
 
     # <<<<<<<<<<<<<<<<<<<< scale's event >>>>>>>>>>>>>>>>>>
@@ -142,14 +154,54 @@ class Controller:
         self.set_image_for_label(
             self.my_image.result_image.copy(), self.view_frame.result_image_label, "RGB")
 
+    def on_D0_change(self, c):
+        self.radio_checked()
+    # =============================================================
+    # <<<<<<<<<<<<<<<<<<< radio's event >>>>>>>>>>>>>>>>>>>
+
+    def radio_checked(self):
+        self.adjust_frame.n_slider.grid_remove()
+        D0 = self.adjust_frame.D0_slider.get()
+        style = IdealFilter.LOWPASS
+        if self.radio_frame.style.get() == "low":
+            style = IdealFilter.LOWPASS
+        elif self.radio_frame.style.get() == "high":
+            style = IdealFilter.HIGHPASS
+
+        if self.radio_frame.type.get() == "ideal":
+            obj = IdealFilter(style, D0)
+            self.my_image.result_image = obj.process_by_lib(
+                self.my_image.image.copy())
+
+        elif self.radio_frame.type.get() == "gaussian":
+            obj = GaussianFilter(style, D0)
+            self.my_image.result_image = obj.process_by_lib(
+                self.my_image.image.copy())
+
+        elif self.radio_frame.type.get() == "butterworth":
+            self.adjust_frame.n_slider.grid(row=1, column=1)
+            n = self.adjust_frame.n_slider.get()
+            obj = ButterworthFilter(style, D0, n)
+            self.my_image.result_image = obj.process_by_lib(
+                self.my_image.image.copy())
+
+        self.set_image_for_label(
+            self.my_image.result_image.copy(), self.view_frame.result_image_label, "GRAY")
+
     # =============================================================
 
     # <<<<<<<<<<<<<<<<<<< combobox's event >>>>>>>>>>>>>>>>>>>
+
     def selected_combobox(self, e):
         self.adjust_frame.kernel_size_label.grid_remove()
         self.adjust_frame.c_slider.grid_remove()
         self.adjust_frame.gamma_slider.grid_remove()
         self.adjust_frame.kernel_size_slider.grid_remove()
+        self.adjust_frame.D0_slider.grid_remove()
+        self.adjust_frame.n_slider.grid_remove()
+        self.radio_frame.style_filter_group.grid_remove()
+        self.radio_frame.type_kernel_group.grid_remove()
+
         if (self.check_image() == False):
             msgbox.showinfo("Thông báo", "Hãy mở 1 file ảnh")
             self.mode_frame.mode_combobox.set(Controller.old_mode)
@@ -192,6 +244,20 @@ class Controller:
             self.adjust_frame.kernel_size_label.grid(row=0, column=1)
             self.on_kernel_size_change(
                 self.adjust_frame.kernel_size_slider.get())
-            pass
+
+        elif your_choice == "Frequency domain filtering":
+            print("nva", self.my_image.image.shape)
+            if (len(self.my_image.image.shape) == 3):
+                msgbox.showinfo(
+                    "Warning", "Chế độ này yêu cầu ảnh phải ở dạng gray. Vui lòng chuyển đổi sang ảnh gray trước khi sử dụng chế độ này", icon="warning")
+                self.mode_frame.mode_combobox.set("None")
+                return
+            print("Thực hiện lọc miền tần số")
+
+            self.adjust_frame.D0_slider.grid(row=0, column=1)
+            self.radio_frame.style_filter_group.grid(column=0, row=0)
+            self.radio_frame.type_kernel_group.grid(
+                column=1, row=0, sticky="w")
+            self.radio_checked()
         Controller.old_mode = self.mode_frame.mode_combobox.get()
     # =================================================================

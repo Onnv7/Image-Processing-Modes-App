@@ -4,8 +4,6 @@ import tkinter as tk
 from PIL import Image, ImageTk
 import cv2
 
-from utilities import MyUtilities
-
 
 class FunctionFrame(tk.Frame):
 
