@@ -15,6 +15,8 @@ class RadioFrame(tk.Frame):
         self.style = tk.StringVar(value="low")
         self.type = tk.StringVar(value="ideal")
 
+        self.color = tk.StringVar(value=0)
+
         # Nhóm 1
         self.style_filter_group = ttk.LabelFrame(self, text="Style filter")
         # self.style_filter_group.grid(column=0, row=0)
@@ -42,3 +44,13 @@ class RadioFrame(tk.Frame):
         self.butterworth_radio = tk.Radiobutton(
             self.type_kernel_group, text="Butterworth", value="butterworth", variable=self.type, command=self.controller.radio_checked)
         self.butterworth_radio.grid(column=0, row=2, sticky="w")
+
+        # Nhóm 3
+        self.color_group = ttk.LabelFrame(self, text="Color")
+        self.white_radio = tk.Radiobutton(
+            self.color_group, text="White", value=1, variable=self.color)
+        self.white_radio.grid(column=0, row=0, sticky="w")
+
+        self.black_radio = tk.Radiobutton(
+            self.color_group, text="Black", value=0, variable=self.color)
+        self.black_radio.grid(column=2, row=0, sticky="w")

@@ -1,8 +1,9 @@
 
-from tkinter import ttk
+from tkinter import Canvas, ttk
 import tkinter as tk
 from PIL import Image, ImageTk
 import cv2
+import numpy as np
 
 
 class ViewFrame(tk.Frame):

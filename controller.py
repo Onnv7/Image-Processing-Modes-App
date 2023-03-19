@@ -14,6 +14,7 @@ from process.image_negatives import ImageNegative
 
 from process.log_transformations import LogTransformations
 from process.nonlinear_filter import NonlinearFilter
+from process.region_filling import RegionFilling
 
 
 class Controller:
@@ -59,11 +60,26 @@ class Controller:
         elif (code == "GRAY2RGB"):
             image = cv2.cvtColor(image.copy(), cv2.COLOR_GRAY2RGB)
 
-        image = cv2.resize(image, (350, 350))
+        # image = cv2.resize(image, (350, 350))
         result = Image.fromarray(image)
         result = ImageTk.PhotoImage(result)
-        label.config(image=result)
+        label.config(
+            image=result, width=matrix.shape[1], height=matrix.shape[0])
         label.image = result
+
+    def on_click(self, event):
+        x = event.x / self.view_frame.original_image_label.winfo_width()
+        y = event.y / self.view_frame.original_image_label.winfo_height()
+        img = np.asarray(self.my_image.image)
+        h, w = img.shape[:2]
+        px = img[int(y * h)][int(x * w)]
+        print(f"Clicked at {int(x * w)}, {int(y * h)}: {px}")
+        fill_obj = RegionFilling(
+            self.my_image)
+        fill_obj.process((int(y * h), int(x * w)),
+                         self.radio_frame.color.get())
+        self.set_image_for_label(
+            self.my_image.result_image.copy(), self.view_frame.result_image_label, "GRAY")
     # ======================================================================
 
     # <<<<<<<<<<<<<<<<<< Button's event >>>>>>>>>>>>>>>>>>>>>>
@@ -83,14 +99,18 @@ class Controller:
     def open_file(self):
         file_path = filedialog.askopenfilename()
         image = cv2.imread(file_path, cv2.IMREAD_ANYCOLOR)
+        print("GOC", image.shape)
         self.my_image.image = image.copy()
         self.my_image.result_image = image.copy()
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        image = cv2.resize(image, (350, 350))
-        image = Image.fromarray(image)
-        image = ImageTk.PhotoImage(image)
-        self.view_frame.original_image_label.config(image=image)
-        self.view_frame.original_image_label.image = image
+        # image = cv2.resize(image, (350, 350))
+        # image = Image.fromarray(image)
+        # image = ImageTk.PhotoImage(image)
+        # self.view_frame.original_image_label.config(image=image)
+        # self.view_frame.original_image_label.image = image
+        # print("set", self.view_frame.original_image_label.image)
+        self.set_image_for_label(image, self.view_frame.original_image_label)
+        print("1", image.shape)
         self.selected_combobox(None)
 
     def save_file(self):
@@ -201,6 +221,7 @@ class Controller:
         self.adjust_frame.n_slider.grid_remove()
         self.radio_frame.style_filter_group.grid_remove()
         self.radio_frame.type_kernel_group.grid_remove()
+        self.radio_frame.color_group.grid_remove()
 
         if (self.check_image() == False):
             msgbox.showinfo("Thông báo", "Hãy mở 1 file ảnh")
@@ -259,5 +280,16 @@ class Controller:
             self.radio_frame.type_kernel_group.grid(
                 column=1, row=0, sticky="w")
             self.radio_checked()
+        elif your_choice == "Region filling":
+            if (len(self.my_image.image.shape) == 3):
+                msgbox.showinfo(
+                    "Warning", "Chế độ này yêu cầu ảnh phải ở dạng gray. Vui lòng chuyển đổi sang ảnh gray trước khi sử dụng chế độ này", icon="warning")
+                self.mode_frame.mode_combobox.set("None")
+                return
+            self.radio_frame.color_group.grid(
+                column=1, row=0, sticky="w")
+            self.view_frame.original_image_label.bind(
+                '<Button-1>', self.on_click)
+            pass
         Controller.old_mode = self.mode_frame.mode_combobox.get()
     # =================================================================
